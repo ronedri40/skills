@@ -1,0 +1,8 @@
+# Platform infra owns the shared infrastructure and templates.
+# Each team owns the skills they author.
+
+skills/create-pr/     @org/platform-infra
+skills/code-review/   @org/platform-infra
+skills/add-mcp/       @org/platform-infra
+templates/            @org/platform-infra
+.github/              @org/platform-infra

@@ -1,0 +1,58 @@
+name: Validate Skills
+
+on:
+  pull_request:
+    paths:
+      - "skills/**"
+      - "templates/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check every skill has a SKILL.md
+        run: |
+          FAILED=0
+          for dir in skills/*/; do
+            skill=$(basename "$dir")
+            if [ ! -f "$dir/SKILL.md" ]; then
+              echo "ERROR: skills/$skill/ is missing SKILL.md"
+              FAILED=1
+            fi
+          done
+          exit $FAILED
+
+      - name: Validate required frontmatter fields
+        run: |
+          pip install -q pyyaml
+          python3 << 'EOF'
+          import sys, re, yaml
+          from pathlib import Path
+
+          REQUIRED = {"name", "description", "version"}
+          failed = False
+
+          for skill_md in Path("skills").glob("*/SKILL.md"):
+              text = skill_md.read_text()
+              match = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
+              if not match:
+                  print(f"ERROR: {skill_md} — missing or malformed YAML frontmatter")
+                  failed = True
+                  continue
+              try:
+                  fm = yaml.safe_load(match.group(1))
+              except yaml.YAMLError as e:
+                  print(f"ERROR: {skill_md} — invalid YAML: {e}")
+                  failed = True
+                  continue
+              missing = REQUIRED - set(fm or {})
+              if missing:
+                  print(f"ERROR: {skill_md} — missing required fields: {missing}")
+                  failed = True
+              else:
+                  print(f"OK:    {skill_md}")
+
+          sys.exit(1 if failed else 0)
+          EOF
